@@ -1,0 +1,231 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#101e35">
+    <meta name="description" content="Explore public and civic facilities identified in the City of Bulawayo cadastral data.">
+    <title>City of Bulawayo | Council Facilities Map</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet-minimap@3.6.1/dist/Control.MiniMap.min.css">
+    <link rel="stylesheet" href="css/style.css">
+  </head>
+  <body>
+    <header class="topbar">
+      <a class="brand" href="#" aria-label="City of Bulawayo facilities map home">
+        <img src="assets/bulawayo-mark.svg" width="46" height="46" alt="Bulawayo map-pin placeholder logo">
+        <span class="brand-copy">
+          <span class="brand-kicker">CITY OF BULAWAYO</span>
+          <span class="brand-title">Facilities map</span>
+        </span>
+      </a>
+      <div class="topbar-title">
+        <span class="eyebrow">CITY SERVICES · ZIMBABWE</span>
+        <h1>City of Bulawayo <span>— Council Facilities Map</span></h1>
+      </div>
+      <div class="topbar-actions">
+        <button class="icon-button" id="about-button" type="button" aria-label="About this map" title="About this map">
+          <span aria-hidden="true">i</span>
+        </button>
+        <button class="icon-button theme-button" id="theme-button" type="button" aria-label="Switch to dark mode" title="Switch colour theme">
+          <span id="theme-icon" aria-hidden="true">◐</span>
+        </button>
+      </div>
+    </header>
+
+    <main class="workspace">
+      <aside class="explorer panel" aria-label="Facility search and map controls">
+        <div class="explorer-heading">
+          <div>
+            <p class="eyebrow">EXPLORE THE CITY</p>
+            <h2>Find a facility</h2>
+          </div>
+          <span class="live-indicator" title="Map status"><span></span> LIVE MAP</span>
+        </div>
+
+        <div class="search-wrap">
+          <label class="sr-only" for="search-input">Search by facility name, stand or suburb</label>
+          <span class="search-icon" aria-hidden="true">⌕</span>
+          <input id="search-input" type="search" placeholder="Name, stand or suburb" autocomplete="off" aria-autocomplete="list" aria-controls="search-results">
+          <span class="search-shortcut" aria-hidden="true">/</span>
+          <ul class="search-results" id="search-results" role="listbox" hidden></ul>
+        </div>
+        <p class="search-hint">Search results update as you type</p>
+
+        <section class="summary-card" aria-label="Facility statistics">
+          <div class="summary-top">
+            <div>
+              <span class="summary-label">FACILITIES SHOWN</span>
+              <div class="summary-total" id="stat-total">—</div>
+            </div>
+            <span class="summary-icon" aria-hidden="true">⌖</span>
+          </div>
+          <div class="summary-divider"></div>
+          <div class="summary-bottom">
+            <span><span class="status-dot"></span> <span id="stat-area">Calculating area…</span></span>
+            <span id="stat-categories">— categories</span>
+          </div>
+        </section>
+
+        <section class="section-block" aria-labelledby="category-title">
+          <div class="section-title-row">
+            <h3 id="category-title">Facility types</h3>
+            <button type="button" class="text-button" id="clear-filters">Reset</button>
+          </div>
+          <div class="category-list" id="category-list" aria-live="polite">
+            <div class="skeleton-row"><span></span><i></i></div>
+            <div class="skeleton-row"><span></span><i></i></div>
+            <div class="skeleton-row"><span></span><i></i></div>
+          </div>
+        </section>
+
+        <section class="section-block map-layers" aria-labelledby="layers-title">
+          <div class="section-title-row"><h3 id="layers-title">Map layers</h3></div>
+          <label class="layer-row">
+            <span class="layer-mark facilities-mark" aria-hidden="true"></span>
+            <span class="layer-label">City facilities</span>
+            <input id="layer-facilities" type="checkbox" checked aria-label="Show city facilities">
+            <span class="switch" aria-hidden="true"></span>
+          </label>
+          <label class="layer-row">
+            <span class="layer-mark cadastre-mark" aria-hidden="true"></span>
+            <span class="layer-label">Cadastral parcels</span>
+            <input id="layer-cadastre" type="checkbox" aria-label="Show cadastral parcels">
+            <span class="switch" aria-hidden="true"></span>
+          </label>
+          <div class="layer-row layer-unavailable" aria-label="Ward boundaries are not available in the supplied data">
+            <span class="layer-mark wards-mark" aria-hidden="true"></span>
+            <span class="layer-label">Ward boundaries <span class="unavailable-label">not supplied</span></span>
+            <input type="checkbox" disabled aria-label="Ward boundaries not supplied">
+            <span class="switch" aria-hidden="true"></span>
+          </div>
+        </section>
+
+        <section class="section-block basemap-block" aria-labelledby="basemap-title">
+          <div class="section-title-row"><h3 id="basemap-title">Basemap</h3></div>
+          <label class="sr-only" for="basemap-select">Choose a basemap</label>
+          <select id="basemap-select" class="select-control">
+            <option value="osm">OpenStreetMap</option>
+            <option value="light">Light · Carto</option>
+            <option value="dark">Dark · Carto</option>
+            <option value="satellite">Satellite · Esri</option>
+          </select>
+        </section>
+
+        <section class="section-block legend-block" aria-labelledby="legend-title">
+          <div class="section-title-row"><h3 id="legend-title">Map legend</h3></div>
+          <div id="legend-list" class="legend-list"></div>
+        </section>
+
+        <div class="explorer-actions">
+          <button type="button" class="action-button" id="export-geojson"><span aria-hidden="true">⇩</span> GeoJSON</button>
+          <button type="button" class="action-button" id="export-csv"><span aria-hidden="true">⇩</span> CSV</button>
+          <button type="button" class="action-button" id="print-map"><span aria-hidden="true">⎙</span> Print</button>
+        </div>
+        <p class="data-note"><span aria-hidden="true">ⓘ</span> Facility types are inferred from parcel use/name. Council ownership is not verified.</p>
+      </aside>
+
+      <section class="map-stage" aria-label="Interactive map of Bulawayo facilities">
+        <div id="map" role="application" aria-label="Interactive City of Bulawayo map"></div>
+        <div class="map-overlay map-caption">
+          <span class="caption-pin" aria-hidden="true"></span>
+          <span><strong>Bulawayo</strong><small>Matabeleland · Zimbabwe</small></span>
+        </div>
+        <div class="map-overlay map-tools" aria-label="Map tools">
+          <button class="map-tool" id="locate-button" type="button" aria-label="Find my location" title="Find my location">◎</button>
+          <button class="map-tool" id="home-button" type="button" aria-label="Reset map view" title="Reset map view">⌂</button>
+          <button class="map-tool" id="fullscreen-button" type="button" aria-label="Toggle fullscreen map" title="Toggle fullscreen">⛶</button>
+        </div>
+        <div class="map-overlay measure-tools" aria-label="Measurement tools">
+          <span class="measure-label">MEASURE</span>
+          <button class="measure-button" id="measure-distance" type="button" aria-pressed="false">↗ Distance</button>
+          <button class="measure-button" id="measure-area" type="button" aria-pressed="false">▱ Area</button>
+          <button class="measure-button measure-clear" id="measure-clear" type="button" hidden>Clear</button>
+          <span class="measure-result" id="measure-result" aria-live="polite"></span>
+        </div>
+        <div class="map-attribution-note">Facility data: supplied City of Bulawayo cadastral extracts · Basemaps © their respective providers</div>
+        <div class="map-loader" id="map-loader">
+          <span class="spinner" aria-hidden="true"></span>
+          <span id="loading-message">Preparing the Bulawayo map…</span>
+        </div>
+        <div class="toast" id="toast" role="status" aria-live="polite"></div>
+      </section>
+
+      <aside class="details-panel panel" id="details-panel" aria-label="Facility details" aria-live="polite">
+        <div class="details-empty" id="details-empty">
+          <span class="empty-illustration" aria-hidden="true"><span>⌖</span></span>
+          <p class="eyebrow">FACILITY DETAILS</p>
+          <h2>Discover the city</h2>
+          <p>Select a marker on the map or search for a place to explore its details.</p>
+          <div class="empty-hint"><span aria-hidden="true">✦</span> Start with a school, clinic or park</div>
+        </div>
+        <div id="details-content" hidden>
+          <div class="details-topline">
+            <span class="eyebrow">FACILITY PROFILE</span>
+            <button type="button" class="icon-button close-details" id="close-details" aria-label="Close facility details">×</button>
+          </div>
+          <div class="facility-identity">
+            <span class="facility-large-icon" id="detail-icon" aria-hidden="true"></span>
+            <div>
+              <span class="category-badge" id="detail-category"></span>
+              <h2 id="detail-name"></h2>
+            </div>
+          </div>
+          <p class="detail-context" id="detail-context"></p>
+          <a class="directions-button" id="directions-link" target="_blank" rel="noopener noreferrer">
+            <span aria-hidden="true">↗</span> Get directions <span class="external-icon" aria-hidden="true">↗</span>
+          </a>
+          <div class="detail-divider"></div>
+          <dl class="detail-list">
+            <div><dt><span aria-hidden="true">▦</span> Stand number</dt><dd id="detail-stand"></dd></div>
+            <div><dt><span aria-hidden="true">⌖</span> Address</dt><dd id="detail-address"></dd></div>
+            <div><dt><span aria-hidden="true">⌂</span> Suburb / ward</dt><dd id="detail-suburb"></dd></div>
+            <div><dt><span aria-hidden="true">▧</span> Parcel area</dt><dd id="detail-area"></dd></div>
+            <div><dt><span aria-hidden="true">◷</span> Status</dt><dd id="detail-status"></dd></div>
+            <div><dt><span aria-hidden="true">◷</span> Opening hours</dt><dd id="detail-hours"></dd></div>
+            <div><dt><span aria-hidden="true">☎</span> Contact</dt><dd id="detail-contact"></dd></div>
+          </dl>
+          <div class="description-card">
+            <span class="description-title">ABOUT THIS PLACE</span>
+            <p id="detail-description"></p>
+          </div>
+          <p class="ownership-note">Ownership and operating details have not been independently verified.</p>
+        </div>
+      </aside>
+    </main>
+
+    <footer class="page-footer">
+      <span>© City of Bulawayo · Facilities information is indicative and subject to verification.</span>
+      <button type="button" class="footer-link" id="footer-about">About &amp; data sources</button>
+    </footer>
+
+    <dialog class="about-dialog" id="about-dialog" aria-labelledby="about-title">
+      <div class="dialog-header">
+        <div><p class="eyebrow">CITY OF BULAWAYO</p><h2 id="about-title">About this map</h2></div>
+        <button type="button" class="icon-button" id="about-close" aria-label="Close about dialog">×</button>
+      </div>
+      <p class="dialog-lead">A practical starting point for discovering public and civic places across Bulawayo.</p>
+      <h3>How to use the map</h3>
+      <ul>
+        <li>Search by facility name, stand number or suburb, or choose a category to filter results.</li>
+        <li>Select a marker to see parcel details. Zoom in to inspect facility boundaries.</li>
+        <li>Use the layer and basemap controls to change the map context. Measure tools work by placing points on the map.</li>
+        <li>Download the filtered results as GeoJSON or CSV, or print the current map view.</li>
+      </ul>
+      <h3>Data sources &amp; limitations</h3>
+      <p>Parcel geometries and land-use labels come from the cadastral files supplied with this project. Facility categories are inferred from land-use and name text. The source does not consistently identify City Council ownership, ward boundaries, opening hours, contacts or operational status. These details should be verified before use.</p>
+      <p class="dialog-credits">Basemaps: OpenStreetMap contributors, CARTO and Esri. Map rendering: Leaflet and Leaflet plugins.</p>
+      <button type="button" class="primary-button" id="about-done">Got it</button>
+    </dialog>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
+    <script src="https://unpkg.com/leaflet-minimap@3.6.1/dist/Control.MiniMap.min.js"></script>
+    <script type="module" src="js/app.js"></script>
+  </body>
+</html>
